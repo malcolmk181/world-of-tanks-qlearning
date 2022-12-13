@@ -1,0 +1,2 @@
+class Battlefield:
+    pass
