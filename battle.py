@@ -8,7 +8,12 @@ class ActionType(Enum):
     SHOOT = 2
     MOVE_AND_SHOOT = 3
 
-Action = tuple[ActionType, Position, bool, int, int]
+# Action: type of action, new position, fired?, target (only valid if fired)
+Action = tuple[ActionType, Position, bool, int]
+
+# ActionResult: type of action, new position, fired?, target (only valid if fired), damage dealt and avoided, damage received
+ActionResult = tuple[ActionType, Position, bool, int, int, int]
+
 Team = list[Tank]
 
 class Battle:
@@ -37,7 +42,7 @@ class Battle:
 
         return results
 
-    def get_actions(self, team: int, player: int):
+    def get_actions(self, team: int, player: int) -> list[Action]:
         # Error checking
         if (team not in [0,1]):
             raise ValueError("Invalid team. Valid values are 0 or 1.")
@@ -51,7 +56,25 @@ class Battle:
         actions: list[Action] = []
 
         if tank_state.alive():
-            actions.append((ActionType.DO_NOTHING, tank_state.position, False, 0, 0))
+            actions.append((ActionType.DO_NOTHING, tank_state.position, False, -999))
 
             # possible movement positions
-            # for position in 
+            for position in self.battlefield.possible_positions(tank_state.position):
+                # if original position, only option is shooting
+                if (position == tank_state.position):
+                    # just shoot
+
+                    for target in self.possible_targets(team, player):
+                        actions.append((ActionType.SHOOT, tank_state.position, True, target))
+
+                else:
+                    # not original position - can just move, or move & shoot
+
+                    # just move
+                    actions.append((ActionType.MOVE, position, False, -999))
+
+                    # move and shoot
+                    for target in self.possible_targets(team, player):
+                        actions.append((ActionType.MOVE_AND_SHOOT, tank_state.position, True, target))
+
+        return actions
