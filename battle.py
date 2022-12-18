@@ -30,6 +30,21 @@ class Battle:
             for i, pos in enumerate(self.battlefield.team_starting_positions[team]):
                 self.team_states[team].append(TankState(self.teams[team][i], pos, self.battlefield))
 
+    def battle_is_over(self) -> bool:
+        if self.ticks_left == 0:
+            return True
+
+        # check remaining tanks of each team, if either one is zero, return True
+        for i in range(2):
+            remaining_tanks: int = 0
+            for tank_state in self.team_states[i]:
+                remaining_tanks += 1 if tank_state.alive() else 0
+
+            if remaining_tanks == 0:
+                return True
+
+        return False
+
     def possible_targets(self, team: int, player: int) -> list[int]:
         # Doesn't check validity of team or player
         results: list[int] = []
