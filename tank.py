@@ -1,10 +1,10 @@
-from battlefield import Battlefield
+from battlefield import Battlefield, Position
 
 class Tank:
 
     def __init__(self) -> None:
         # movement
-        self.movement_speed: int = 1 # tiles per tick
+        self.movement_speed: int = 1 # tiles per tick - functionally ignored
 
         # health
         self.health: int = 10 # health points
@@ -15,13 +15,13 @@ class Tank:
 
 class TankState:
 
-    def __init__(self, tank: Tank, position: "tuple[int, int]", battlefield: Battlefield) -> None:
+    def __init__(self, tank: Tank, position: Position, battlefield: Battlefield) -> None:
         self.tank: Tank = tank
         self.battlefield: Battlefield = battlefield
 
         self.time_until_reloaded: int = tank.reload_time
-        self.position: tuple[int, int] = position
-        self.last_position: tuple[int, int] = position
+        self.position: Position = position
+        self.last_position: Position = position
 
         self.remaining_health: int = tank.health
         self.damage_dealt_and_avoided: int = 0
@@ -42,7 +42,7 @@ class TankState:
     def alive(self) -> bool:
         return self.remaining_health > 0
 
-    def take_action(self, new_position: tuple[int,int], fired: bool, damage_dealt_and_avoided: int, damage_taken: int):
+    def take_action(self, new_position: Position, fired: bool, damage_dealt_and_avoided: int, damage_taken: int):
         self.last_position = self.position
         self.position = new_position
 
