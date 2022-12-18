@@ -59,12 +59,13 @@ class Battle:
 
     def possible_targets(self, team: int, player: int) -> list[int]:
         # Doesn't check validity of team or player
+        # Does check that tank is ready to shoot.
         results: list[int] = []
 
         other_team: int = 1 if team == 0 else 0
 
         for other_player, other_player_state in enumerate(self.team_states[other_team]):
-            if self.team_states[team][player].position_in_range(other_player_state.position):
+            if self.team_states[team][player].position_in_range(other_player_state.position) and self.team_states[team][player].ready_to_shoot():
                 results.append(other_player)
 
         return results
