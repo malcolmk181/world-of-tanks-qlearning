@@ -42,5 +42,16 @@ class TankState:
     def alive(self) -> bool:
         return self.remaining_health > 0
 
-    # def take_action(self, new_position: tuple[int,int] | None = None, ):
-    #     pass
+    def take_action(self, new_position: tuple[int,int], fired: bool, damage_dealt_and_avoided: int, damage_taken: int):
+        self.last_position = self.position
+        self.position = new_position
+
+        if (fired):
+            self.time_until_reloaded = self.tank.reload_time
+        else:
+            self.time_until_reloaded = max(0, self.time_until_reloaded - 1)
+
+        self.damage_dealt_and_avoided += damage_dealt_and_avoided
+
+        self.damage_taken += damage_taken
+        self.remaining_health = max(0, self.remaining_health - damage_taken)
