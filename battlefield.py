@@ -14,16 +14,16 @@ class Battlefield:
         if (board_size != (3,9)):
             raise ValueError("Board sizes other than (3,9) are not yet implemented.")
 
-        self.team0_size = team0_size
-        self.team1_size = team1_size
+        self.team_sizes: tuple[int,int] = (team0_size, team1_size)
 
         self.board_size = board_size
 
         self.light_cover_positions: list[Position] = [(0,2),(0,4),(1,2),(1,6),(2,4),(2,6)]
         self.heavy_cover_positions: list[Position] = [(0,5),(1,4),(2,3)]
 
-        self.team0_starting_positions: list[Position] = [(1,0)] if team0_size == 1 else [(0,0),(2,0)]
-        self.team1_starting_positions: list[Position] = [(8,0)] if team1_size == 1 else [(0,8),(2,8)]
+        team0_starting_positions: list[Position] = [(1,0)] if team0_size == 1 else [(0,0),(2,0)]
+        team1_starting_positions: list[Position] = [(8,0)] if team1_size == 1 else [(0,8),(2,8)]
+        self.team_starting_positions: tuple[list[Position], list[Position]] = (team0_starting_positions, team1_starting_positions)
 
     def position_is_in_bounds(self, position: Position) -> bool:
         if (position[0] >= 0 and position[0] < self.board_size[0] and \
@@ -40,7 +40,7 @@ class Battlefield:
 
     def possible_positions(self, position: Position) -> list[Position]:
         if (not self.position_is_in_bounds(position)):
-            raise ValueError("Illegal position")
+            raise ValueError("Illegal position.")
 
         positions: list[Position] = []
 

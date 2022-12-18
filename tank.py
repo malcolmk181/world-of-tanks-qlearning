@@ -1,4 +1,5 @@
 from battlefield import Battlefield, Position
+from math import floor
 
 class Tank:
 
@@ -12,6 +13,7 @@ class Tank:
         # gun handling
         self.reload_time: int = 3 # ticks
         self.damage_per_shot: int = 2 # health points
+        self.range: int = 4 # blocks
 
 class TankState:
 
@@ -41,6 +43,15 @@ class TankState:
 
     def alive(self) -> bool:
         return self.remaining_health > 0
+
+    def position_in_range(self, position: Position) -> bool:
+        # Doesn't check if position is valid.
+        # Range checking is pretty inelegant, too small a board for otherwise
+
+        distance: float = ((abs(self.position[0] - position[0]))**2 + (abs(self.position[1] - position[1]))**2)**0.5
+
+        return int(floor(distance)) <= self.tank.range
+
 
     def take_action(self, new_position: Position, fired: bool, damage_dealt_and_avoided: int, damage_taken: int):
         self.last_position = self.position
