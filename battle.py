@@ -65,7 +65,13 @@ class Battle:
         other_team: int = 1 if team == 0 else 0
 
         for other_player, other_player_state in enumerate(self.team_states[other_team]):
-            if self.team_states[team][player].position_in_range(other_player_state.position) and self.team_states[team][player].ready_to_shoot():
+            # check that
+            # - players are in range
+            # - attacking player is reloaded and not in heavy cover
+            # - target player is not in heavy cover
+            if self.team_states[team][player].position_in_range(other_player_state.position) \
+                and self.team_states[team][player].ready_to_shoot() \
+                and not other_player_state.in_heavy_cover():
                 results.append(other_player)
 
         return results
