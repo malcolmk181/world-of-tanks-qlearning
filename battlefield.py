@@ -22,7 +22,7 @@ class Battlefield:
         self.heavy_cover_positions: list[Position] = [(0,5),(1,4),(2,3)]
 
         team0_starting_positions: list[Position] = [(1,0)] if team0_size == 1 else [(0,0),(2,0)]
-        team1_starting_positions: list[Position] = [(0,8)] if team1_size == 1 else [(0,8),(2,8)]
+        team1_starting_positions: list[Position] = [(1,8)] if team1_size == 1 else [(0,8),(2,8)]
         self.team_starting_positions: tuple[list[Position], list[Position]] = (team0_starting_positions, team1_starting_positions)
 
     def position_is_in_bounds(self, position: Position) -> bool:
