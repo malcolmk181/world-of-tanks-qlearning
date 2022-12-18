@@ -1,6 +1,7 @@
 from battlefield import Battlefield, Position
 from tank import Tank, TankState
 from enum import Enum
+from random import random
 
 class ActionType(Enum):
     DO_NOTHING = 0
@@ -112,3 +113,25 @@ class Battle:
                         actions.append((ActionType.MOVE_AND_SHOOT, tank_state.position, True, target))
 
         return actions
+
+    def calculate_shot_damage(self, team: int, player: int, enemy_player: int) -> int:
+        # return the damage done by player on team shooting at enemy player on the other team
+        # doesn't consider distance :shrug:
+
+        enemy_team: int = 0 if team == 1 else 1
+
+        attacker_state: TankState = self.team_states[team][player]
+        target_state: TankState = self.team_states[enemy_team][enemy_player]
+        
+        landing_probability: float = 0.9
+
+        if attacker_state.moving():
+            landing_probability -= 0.2
+
+        if target_state.moving():
+            landing_probability -= 0.1
+
+        if target_state.in_light_cover():
+            landing_probability -= 0.2
+
+        return attacker_state.tank.damage_per_shot if random() <= landing_probability else 0
