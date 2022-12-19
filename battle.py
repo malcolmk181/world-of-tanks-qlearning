@@ -2,6 +2,7 @@ from battlefield import Battlefield, Position
 from tank import Tank, TankState
 from enum import Enum
 from random import random
+from policy import Policy
 
 class ActionType(Enum):
     DO_NOTHING = 0
@@ -149,3 +150,40 @@ class Battle:
             landing_probability -= 0.2
 
         return attacker_state.tank.damage_per_shot if random() <= landing_probability else 0
+
+    def generate_all_player_actions(self) -> tuple[list[list[Action]],list[list[Action]]]:
+        actions = ([],[])
+
+        for team in range(2):
+            for player, player_state in enumerate(self.team_states[team]):
+                actions[team].append(self.get_actions(team, player))
+
+        return actions
+
+    def apply_all_player_actions(self, chosen_actions: tuple[list[Action], list[Action]]) -> None:
+        damage_dealt_and_avoided_log: tuple[list[int],list[int]] = ([0 for i in range(len(self.team_states[0]))],[0 for i in range(len(self.team_states[1]))])
+        damage_taken_log: tuple[list[int],list[int]] = ([0 for i in range(len(self.team_states[0]))],[0 for i in range(len(self.team_states[1]))])
+
+        # calculate damage
+        for team in range(2):
+            for player, player_state in enumerate(self.team_states[team]):
+                if chosen_actions[team][player][0] == ActionType.SHOOT or chosen_actions[team][player][0] == ActionType.MOVE_AND_SHOOT:
+                    target_player: int = chosen_actions[team][player][3]
+                    enemy_team: int = 0 if team == 1 else 1
+                    damage: int = self.calculate_shot_damage(team, player, target_player)
+
+                    if damage == 0:
+                        damage_dealt_and_avoided_log[enemy_team][target_player] += player_state.tank.damage_per_shot
+                    else:
+                        damage_dealt_and_avoided_log[team][player] += player_state.tank.damage_per_shot
+                        damage_taken_log[enemy_team][target_player] += player_state.tank.damage_per_shot
+
+        # Apply actions
+        for team in range(2):
+            for player, player_state in enumerate(self.team_states[team]):
+                #type of action, new position, fired?, target
+                action_type, new_pos, fired, target = chosen_actions[team][player]
+                player_state.take_action(new_pos, fired, damage_dealt_and_avoided_log[team][player], damage_taken_log[team][player])
+
+        # Update time left
+        self.ticks_left = max(0, self.ticks_left - 1)
