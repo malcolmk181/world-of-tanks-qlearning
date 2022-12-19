@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from tank import TankState
 from battle import Action, ActionType, Battle
 from random import choice, shuffle
 
@@ -9,18 +8,18 @@ class Policy(ABC):
         self.battle = battle
 
     @abstractmethod
-    def choose_action(self, team: int, player: int, team_states: "tuple[list[TankState],list[TankState]]", actions: list[Action]) -> Action:
+    def choose_action(self, team: int, player: int, actions: list[Action]) -> Action:
         pass
 
 class RandomPolicy(Policy):
 
-    def choose_action(self, team: int, player: int, team_states: "tuple[list[TankState],list[TankState]]", actions: list[Action]) -> Action:
+    def choose_action(self, team: int, player: int, actions: list[Action]) -> Action:
         shuffle(actions)
         return choice(actions)
 
 class GreedyShooterRandomPolicy(Policy):
 
-    def choose_action(self, team: int, player: int, team_states: "tuple[list[TankState],list[TankState]]", actions: list[Action]) -> Action:
+    def choose_action(self, team: int, player: int, actions: list[Action]) -> Action:
         """
             When available, uniformally chooses a shooting action. Otherwise moves randomly.
         """

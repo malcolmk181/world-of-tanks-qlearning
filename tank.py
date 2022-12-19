@@ -28,6 +28,7 @@ class TankState:
         self.remaining_health: int = tank.health
         self.damage_dealt_and_avoided: int = 0
         self.damage_taken: int = 0
+        self.shots_fired: int = 0
 
     def in_heavy_cover(self) -> bool:
         return self.battlefield.position_is_heavy_cover(self.position)
@@ -59,6 +60,7 @@ class TankState:
 
         if (fired):
             self.time_until_reloaded = self.tank.reload_time
+            self.shots_fired += 1
         else:
             self.time_until_reloaded = max(0, self.time_until_reloaded - 1)
 
@@ -66,3 +68,8 @@ class TankState:
 
         self.damage_taken += damage_taken
         self.remaining_health = max(0, self.remaining_health - damage_taken)
+
+    def print_stats(self) -> None:
+        print(f"Shots fired: {self.shots_fired}")
+        print(f"Damage dealt & avoided: {self.damage_dealt_and_avoided}")
+        print(f"Damage taken: {self.damage_taken}")

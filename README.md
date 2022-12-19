@@ -20,3 +20,47 @@ The real World of Tanks has an extremely important mechanic called spotting, whi
 
 Initially, the enemy will be mostly random, aside from the requirement that it will shoot at the enemy tank whenever possible. If possible, I will build a heuristic that favors moving closer to the enemy and taking advantage of cover.
 
+## The Setup
+
+A board is a 3x9 rectangle, and each team has 1-2 players. **I will focus on the 1v1 situation for my project.** On the board there is light cover, heavy cover, and normal squares. It looks like this:
+
+```
+
+  _   _   _  
+| _ | 2 | _ |
+| _ | _ | _ |       Key:
+| _ | L | L |        1 : Team 1, player 1 starting position
+| H | _ | _ |        2 : Team 2, player 1 starting position
+| L | H | L |        H : Heavy cover
+| _ | _ | H |        L : Light cover
+| L | L | _ |
+| _ | _ | _ |
+| _ | 1 | _ |
+
+```
+
+A 2v2 situation would look like this (and is setup in the code, but I will not focus on it):
+
+```
+
+  _   _   _  
+| 3 | _ | 4 |
+| _ | _ | _ |       Key:
+| _ | L | L |        1 : Team 1, player 1 starting position
+| H | _ | _ |        2 : Team 1, player 2 starting position
+| L | H | L |        3 : Team 2, player 1 starting position
+| _ | _ | H |        4 : Team 2, player 2 starting position
+| L | L | _ |        H : Heavy cover
+| _ | _ | _ |        L : Light cover
+| 1 | _ | 2 |
+
+```
+
+Games are set to limit at 60 ticks. During each tick, each player chooses an action - do nothing, move to an adjacent square, or (if reloaded, not in heavy cover, and there is a suitable target) shoot / shoot + move. A team wins when the other team is completely destroyed. If the time runs out, it is a draw.
+
+## Results
+
+As a baseline, I made two agents - one that acts completely randomly, and one that will also act randomly, but will always choose a shooting play when one is available.
+
+In a 1v1 situation, the greedy-shooter beats the completely random agent ~56% of the time, draws about ~24% of the time, and loses ~20% of the time. Conversely, the random policy playing itself wins or loses ~31% of the time, and draws ~38% of the time. The greedy-shooter playing itself wins or loses ~37% of the time, and draws ~26% of the time, which is more decisive than the completely random player. (stats from 100k games each)
+

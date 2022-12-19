@@ -1,3 +1,6 @@
+# My local copy of pypy3.9 lol
+pypy3/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

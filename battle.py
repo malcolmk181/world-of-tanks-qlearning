@@ -2,7 +2,6 @@ from battlefield import Battlefield, Position
 from tank import Tank, TankState
 from enum import Enum
 from random import random
-from policy import Policy
 
 class ActionType(Enum):
     DO_NOTHING = 0
@@ -160,10 +159,13 @@ class Battle:
 
         return actions
 
-    def apply_all_player_actions(self, chosen_actions: tuple[list[Action], list[Action]]) -> None:
+    def apply_all_player_actions(self, chosen_actions: tuple[list[Action], list[Action]], verbose: bool = False) -> None:
         damage_dealt_and_avoided_log: tuple[list[int],list[int]] = ([0 for i in range(len(self.team_states[0]))],[0 for i in range(len(self.team_states[1]))])
         damage_taken_log: tuple[list[int],list[int]] = ([0 for i in range(len(self.team_states[0]))],[0 for i in range(len(self.team_states[1]))])
 
+        if verbose:
+            print(f"Tick {self.ticks_left}")
+        
         # calculate damage
         for team in range(2):
             for player, player_state in enumerate(self.team_states[team]):
@@ -174,9 +176,15 @@ class Battle:
 
                     if damage == 0:
                         damage_dealt_and_avoided_log[enemy_team][target_player] += player_state.tank.damage_per_shot
+
+                        if verbose:
+                            print(f"Player {player} of team {team} fires at player {player} of team {enemy_team}. MISS.")
                     else:
                         damage_dealt_and_avoided_log[team][player] += player_state.tank.damage_per_shot
                         damage_taken_log[enemy_team][target_player] += player_state.tank.damage_per_shot
+
+                        if verbose:
+                            print(f"Player {player} of team {team} fires at player {player} of team {enemy_team}. HIT.")
 
         # Apply actions
         for team in range(2):
@@ -187,3 +195,14 @@ class Battle:
 
         # Update time left
         self.ticks_left = max(0, self.ticks_left - 1)
+
+    def print_all_tank_stats(self) -> None:
+        print("\nSTATS")
+
+        for team in range(2):
+            print(f"Team {team}:")
+
+            for player, player_state in enumerate(self.team_states[team]):
+                print(f"Player {player}:")
+                player_state.print_stats()
+                print()
