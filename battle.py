@@ -31,7 +31,19 @@ class Battle:
             for i, pos in enumerate(self.battlefield.team_starting_positions[team]):
                 self.team_states[team].append(TankState(self.teams[team][i], pos, self.battlefield))
 
+    def validate_team(self, team: int) -> None:
+        if (team not in [0,1]):
+            raise ValueError("Invalid team. Valid values are 0 or 1.")
+
+    def validate_team_and_player(self, team: int, player: int) -> None:
+        self.validate_team(team)
+
+        if (player not in list(range(len(self.teams[team])))):
+            raise ValueError(f"Invalid player {player} for team {team}.")
+
     def remaining_tanks(self, team: int) -> int:
+        self.validate_team(team)
+
         remaining: int = 0
         for tank_state in self.team_states[team]:
             remaining += 1 if tank_state.alive() else 0
@@ -50,6 +62,8 @@ class Battle:
         return False
 
     def win(self, team: int) -> bool:
+        self.validate_team(team)
+
         other_team: int = 1 if team == 0 else 0
 
         if (self.battle_is_over() and self.remaining_tanks(team) > 0 and self.remaining_tanks(other_team) == 0):
@@ -59,7 +73,8 @@ class Battle:
 
 
     def possible_targets(self, team: int, player: int) -> list[int]:
-        # Doesn't check validity of team or player
+        self.validate_team_and_player(team, player)
+        
         # Does check that tank is ready to shoot.
         results: list[int] = []
 
@@ -78,12 +93,7 @@ class Battle:
         return results
 
     def get_actions(self, team: int, player: int) -> list[Action]:
-        # Error checking
-        if (team not in [0,1]):
-            raise ValueError("Invalid team. Valid values are 0 or 1.")
-
-        if (player not in list(range(len(self.teams[team])))):
-            raise ValueError(f"Invalid player {player} for team {team}.")
+        self.validate_team_and_player(team, player)
 
         tank_state: TankState = self.team_states[team][player]
 
@@ -119,6 +129,9 @@ class Battle:
         # doesn't consider distance :shrug:
 
         enemy_team: int = 0 if team == 1 else 1
+
+        self.validate_team_and_player(team, player)
+        self.validate_team_and_player(enemy_team, enemy_player)
 
         attacker_state: TankState = self.team_states[team][player]
         target_state: TankState = self.team_states[enemy_team][enemy_player]
