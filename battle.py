@@ -128,9 +128,10 @@ class Battle:
         # return the damage done by player on team shooting at enemy player on the other team
         # doesn't consider distance :shrug:
 
+        self.validate_team_and_player(team, player)
+
         enemy_team: int = 0 if team == 1 else 1
 
-        self.validate_team_and_player(team, player)
         self.validate_team_and_player(enemy_team, enemy_player)
 
         attacker_state: TankState = self.team_states[team][player]
