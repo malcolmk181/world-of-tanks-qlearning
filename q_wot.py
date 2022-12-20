@@ -1,7 +1,7 @@
 from policy import Policy
 from battle import Action, ActionType, Battle
 from tank import Tank
-from random import shuffle
+from random import shuffle, random, choice
 
 # exploration value
 EPSILON = 0.25
@@ -41,6 +41,12 @@ def best_action_type(weights: dict[Q, tuple[float, float]], state: State, allowe
             best_found_action_type = action_type
 
     return best_found_action_type
+
+def epsilon_greedy(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType]) -> ActionType:
+    if random() <= EPSILON:
+        return choice(allowed_action_types)
+    else:
+        return best_action_type(weights, state, allowed_action_types)
 
 def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weights: None | dict[Q, tuple[float, float]] = None) -> Policy:
 
