@@ -48,6 +48,13 @@ def epsilon_greedy(weights: dict[Q, tuple[float, float]], state: State, allowed_
     else:
         return best_action_type(weights, state, allowed_action_types)
 
+def choose_action(weights: dict[Q, tuple[float, float]], state: State, actions: list[Action]) -> Action:
+    allowed_action_types: list[ActionType] = list(set(map(lambda x : x[0], actions)))
+
+    chosen_action_type: ActionType = epsilon_greedy(weights, state, allowed_action_types)
+
+    return choice(list(filter(lambda x : x[0] == chosen_action_type, actions)))
+
 def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weights: None | dict[Q, tuple[float, float]] = None) -> Policy:
 
     if pickled_weights:
