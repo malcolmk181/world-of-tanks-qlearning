@@ -1,25 +1,48 @@
 from policy import Policy
 from battle import Action, ActionType, Battle
 from tank import Tank
+from random import shuffle
 
-TYPES_OF_ACTIONS = 4
+# exploration value
+EPSILON = 0.25
+
+DISCOUNT_FACTOR = 0.6
+
+INITIAL_LEARNING_RATE = 0.2
 
 # (in_light_cover, in_heavy_cover, ready_to_fire, moving, enemy_moving, enemy_light_cover)
 State = tuple[bool, bool, bool, bool, bool, bool]
 
 Q = tuple[State, ActionType]
 
-def get_weight(weights: dict[Q, float], state: State, action_type: ActionType) -> float:
+def get_weight_and_learning_rate(weights: dict[Q, tuple[float, float]], state: State, action_type: ActionType) -> tuple[float,float]:
     if (state, action_type) in weights:
         return weights[(state, action_type)]
     else:
-        weights[(state, action_type)] = 0.0
-        return 0.0
+        weights[(state, action_type)] = 0.0, INITIAL_LEARNING_RATE
+        return 0.0, INITIAL_LEARNING_RATE
 
-def set_weight(weights: dict[Q, float], state: State, action_type: ActionType, new_weight: float) -> None:
-    weights[(state, action_type)] = new_weight
+def set_weight(weights: dict[Q, tuple[float, float]], state: State, action_type: ActionType, new_weight: float) -> None:
+    # ALSO DECAYS LEARNING RATE
+    _, learning_rate = weights[(state, action_type)]
+    weights[(state, action_type)] = new_weight, learning_rate * 0.99
 
-def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weights: None | dict[Q, float] = None) -> Policy:
+def best_action_type(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType]) -> ActionType:
+    shuffle(allowed_action_types)
+    
+    best_found_action_type: ActionType = allowed_action_types[0]
+    best_found_reward: float = 0.0
+
+    for action_type in allowed_action_types:
+        reward, _ = get_weight_and_learning_rate(weights, state, action_type)
+
+        if reward > best_found_reward:
+            best_found_reward = reward
+            best_found_action_type = action_type
+
+    return best_found_action_type
+
+def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weights: None | dict[Q, tuple[float, float]] = None) -> Policy:
 
     if pickled_weights:
         raise NotImplementedError("Hold on pal, we haven't built the pickle stuff yet.")
@@ -44,7 +67,7 @@ def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weigh
         but not every bucket is necessarily valid, so will be less.
         since it's sparse can use a dictionary instead of a many-dimensional array
     """
-    weights: dict[Q, float] = {}
+    weights: dict[Q, tuple[float, float]] = {}
 
     # simulate num_simulations battles against the enemy policy
     for i in range(num_simulations):
