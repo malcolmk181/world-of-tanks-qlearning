@@ -1,6 +1,6 @@
 from policy import Policy
 from battle import Action, ActionType, Battle
-from tank import Tank
+from tank import Tank, TankState
 from random import shuffle, random, choice
 
 # exploration value
@@ -10,8 +10,8 @@ DISCOUNT_FACTOR = 0.6
 
 INITIAL_LEARNING_RATE = 0.2
 
-# (in_light_cover, in_heavy_cover, ready_to_fire, moving, enemy_moving, enemy_light_cover)
-State = tuple[bool, bool, bool, bool, bool, bool]
+# (in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover)
+State = tuple[bool, bool, bool, bool, bool, bool, bool]
 
 Q = tuple[State, ActionType]
 
@@ -54,6 +54,38 @@ def choose_action(weights: dict[Q, tuple[float, float]], state: State, actions: 
     chosen_action_type: ActionType = epsilon_greedy(weights, state, allowed_action_types)
 
     return choice(list(filter(lambda x : x[0] == chosen_action_type, actions)))
+
+def compute_state_from_tank_state(battle: Battle, team: int, player: int, player_state: TankState) -> State:
+    # I am realizing too late that this will not scale for more than one enemy lol
+
+    in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover = False, False, False, False, False, False, False
+    enemy_team: int = 1 if team == 0 else 0
+
+    possible_targets = battle.possible_targets(team, player)
+    if len(possible_targets) > 0:
+        possible_target = True
+
+        # just going to grab the first one - doesn't work for more than one enemy
+        target_state: TankState = battle.team_states[enemy_team][possible_targets[0]]
+
+        if target_state.moving():
+            enemy_moving = True
+
+        if target_state.in_light_cover():
+            enemy_light_cover = True
+
+    if player_state.in_light_cover():
+        in_light_cover = True
+    elif player_state.in_heavy_cover():
+        in_heavy_cover = True
+
+    if player_state.ready_to_shoot():
+        ready_to_shoot = True
+
+    if player_state.moving():
+        moving = True
+
+    return in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover
 
 def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weights: None | dict[Q, tuple[float, float]] = None) -> Policy:
 
@@ -100,6 +132,9 @@ def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weigh
 
     class QPolicy(Policy):
         def choose_action(self, team: int, player: int, actions: list[Action]) -> Action:
-            return actions[0]
+            player_state: TankState = self.battle.team_states[team][player]
+            state = compute_state_from_tank_state(self.battle, team, player, player_state)
+
+            return choose_action(weights, state, actions)
 
     return QPolicy # type: ignore
