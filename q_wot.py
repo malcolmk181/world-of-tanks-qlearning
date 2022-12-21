@@ -2,6 +2,7 @@ from policy import Policy
 from battle import Action, ActionType, Battle
 from tank import Tank, TankState
 from random import shuffle, random, choice
+from itertools import repeat
 
 # exploration value
 EPSILON = 0.25
@@ -15,21 +16,24 @@ State = tuple[bool, bool, bool, bool, bool, bool, bool]
 
 Q = tuple[State, ActionType]
 
-def get_weight_and_learning_rate(weights: dict[Q, tuple[float, float]], state: State, action_type: ActionType) -> tuple[float,float]:
+
+def get_weight_and_learning_rate(weights: dict[Q, tuple[float, float]], state: State, action_type: ActionType) -> tuple[float, float]:
     if (state, action_type) in weights:
         return weights[(state, action_type)]
     else:
         weights[(state, action_type)] = 0.0, INITIAL_LEARNING_RATE
         return 0.0, INITIAL_LEARNING_RATE
 
+
 def set_weight(weights: dict[Q, tuple[float, float]], state: State, action_type: ActionType, new_weight: float) -> None:
     # ALSO DECAYS LEARNING RATE
     _, learning_rate = weights[(state, action_type)]
-    weights[(state, action_type)] = new_weight, learning_rate * 0.99
+    weights[(state, action_type)] = new_weight, learning_rate ** 0.99
+
 
 def best_action_type(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType]) -> ActionType:
     shuffle(allowed_action_types)
-    
+
     best_found_action_type: ActionType = allowed_action_types[0]
     best_found_reward: float = 0.0
 
@@ -42,18 +46,34 @@ def best_action_type(weights: dict[Q, tuple[float, float]], state: State, allowe
 
     return best_found_action_type
 
+def best_action_value(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType]) -> float:
+
+    best_found_reward: float = 0.0
+
+    for action_type in allowed_action_types:
+        reward, _ = get_weight_and_learning_rate(weights, state, action_type)
+
+        if reward > best_found_reward:
+            best_found_reward = reward
+
+    return best_found_reward
+
 def epsilon_greedy(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType]) -> ActionType:
     if random() <= EPSILON:
         return choice(allowed_action_types)
     else:
         return best_action_type(weights, state, allowed_action_types)
 
-def choose_action(weights: dict[Q, tuple[float, float]], state: State, actions: list[Action]) -> Action:
-    allowed_action_types: list[ActionType] = list(set(map(lambda x : x[0], actions)))
 
-    chosen_action_type: ActionType = epsilon_greedy(weights, state, allowed_action_types)
+def choose_qaction(weights: dict[Q, tuple[float, float]], state: State, actions: list[Action]) -> Action:
+    allowed_action_types: list[ActionType] = list(
+        set(map(lambda x: x[0], actions)))
 
-    return choice(list(filter(lambda x : x[0] == chosen_action_type, actions)))
+    chosen_action_type: ActionType = epsilon_greedy(
+        weights, state, allowed_action_types)
+
+    return choice(list(filter(lambda x: x[0] == chosen_action_type, actions)))
+
 
 def compute_state_from_tank_state(battle: Battle, team: int, player: int, player_state: TankState) -> State:
     # I am realizing too late that this will not scale for more than one enemy lol
@@ -87,10 +107,12 @@ def compute_state_from_tank_state(battle: Battle, team: int, player: int, player
 
     return in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover
 
+
 def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weights: None | dict[Q, tuple[float, float]] = None) -> Policy:
 
     if pickled_weights:
-        raise NotImplementedError("Hold on pal, we haven't built the pickle stuff yet.")
+        raise NotImplementedError(
+            "Hold on pal, we haven't built the pickle stuff yet.")
 
     """
         what should my functional approximators be?
@@ -115,26 +137,40 @@ def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weigh
     weights: dict[Q, tuple[float, float]] = {}
 
     # simulate num_simulations battles against the enemy policy
-    for i in range(num_simulations):
+    for _ in repeat(None, num_simulations):
 
-        b = Battle([Tank()],[Tank()])
+        b = Battle([Tank()], [Tank()])
 
-        while(not b.battle_is_over()):
+        while (not b.battle_is_over()):
             team0_actions, team1_actions = b.generate_all_player_actions()
             player0_actions = team0_actions[0]
             player1_actions = team1_actions[0]
-            
 
-            # replace p0_policy choice with q-learning choice
-            # b.apply_all_player_actions(([p0_policy.choose_action(0,0,player0_actions)], [enemy_policy.choose_action(1,0,player1_actions)]))
+            player_state: TankState = b.team_states[0][0]
 
-        pass
+            # Choose & apply action
+            state = compute_state_from_tank_state(b, 0, 0, player_state)
+            action = choose_qaction(weights, state, player0_actions)
+            b.apply_all_player_actions(([action], [enemy_policy.choose_action(1,0,player1_actions)]))
+
+            # Observe result
+            damage_dealt_and_avoided, damage_taken = player_state.last_damage_stats
+            reward: int = damage_dealt_and_avoided - damage_taken
+
+            # Update Q-values
+            value, learning_rate = get_weight_and_learning_rate(weights, state, action[0])
+            next_state = compute_state_from_tank_state(b, 0, 0, player_state)
+            next_state_value = best_action_value(weights, next_state, list(set(map(lambda x: x[0], b.generate_all_player_actions()[0][0]))))
+
+            new_weight: float = (1 - learning_rate) * value + learning_rate * (reward + DISCOUNT_FACTOR * next_state_value)
+            set_weight(weights, state, action[0], new_weight)
 
     class QPolicy(Policy):
         def choose_action(self, team: int, player: int, actions: list[Action]) -> Action:
             player_state: TankState = self.battle.team_states[team][player]
-            state = compute_state_from_tank_state(self.battle, team, player, player_state)
+            state = compute_state_from_tank_state(
+                self.battle, team, player, player_state)
 
-            return choose_action(weights, state, actions)
+            return choose_qaction(weights, state, actions)
 
-    return QPolicy # type: ignore
+    return QPolicy  # type: ignore
