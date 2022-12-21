@@ -3,6 +3,8 @@ from battle import Action, ActionType, Battle
 from tank import Tank, TankState
 from random import shuffle, random, choice
 from itertools import repeat
+import json
+from datetime import datetime
 
 # (in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover)
 State = tuple[bool, bool, bool, bool, bool, bool, bool]
@@ -62,6 +64,13 @@ def choose_qaction(weights: dict[Q, tuple[float, float]], state: State, actions:
     allowed_action_types: list[ActionType] = list(set(map(lambda x: x[0], actions)))
 
     chosen_action_type: ActionType = epsilon_greedy(weights, state, allowed_action_types, EPSILON, INITIAL_LEARNING_RATE)
+
+    return choice(list(filter(lambda x: x[0] == chosen_action_type, actions)))
+
+def choose_best_qaction(weights: dict[Q, tuple[float, float]], state: State, actions: list[Action], INITIAL_LEARNING_RATE: float) -> Action:
+    allowed_action_types: list[ActionType] = list(set(map(lambda x: x[0], actions)))
+
+    chosen_action_type: ActionType = best_action_type(weights, state, allowed_action_types, INITIAL_LEARNING_RATE)
 
     return choice(list(filter(lambda x: x[0] == chosen_action_type, actions)))
 
@@ -170,12 +179,14 @@ def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000, epsilon: float
             new_weight: float = (1 - learning_rate) * value + learning_rate * (reward + DISCOUNT_FACTOR * next_state_value)
             set_weight(weights, state, action[0], new_weight)
 
+    
+
     class QPolicy(Policy):
         def choose_action(self, team: int, player: int, actions: list[Action]) -> Action:
             player_state: TankState = self.battle.team_states[team][player]
             state = compute_state_from_tank_state(
                 self.battle, team, player, player_state)
 
-            return choose_qaction(weights, state, actions, EPSILON, INITIAL_LEARNING_RATE)
+            return choose_best_qaction(weights, state, actions, INITIAL_LEARNING_RATE)
 
     return QPolicy  # type: ignore
