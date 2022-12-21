@@ -39,7 +39,7 @@ A board is a 3x9 rectangle, and each team has 1-2 players. **I will focus on the
 
 ```
 
-A 2v2 situation would look like this (and is setup in the code, but I will not focus on it):
+A 2v2 situation would look like this (and is (mostly) setup in the code, but I will not focus on it):
 
 ```
 
@@ -63,4 +63,25 @@ Games are set to limit at 60 ticks. During each tick, each player chooses an act
 As a baseline, I made two agents - one that acts completely randomly, and one that will also act randomly, but will always choose a shooting play when one is available.
 
 In a 1v1 situation, the greedy-shooter beats the completely random agent ~56% of the time, draws about ~24% of the time, and loses ~20% of the time. Conversely, the random policy playing itself wins or loses ~31% of the time, and draws ~38% of the time. The greedy-shooter playing itself wins or loses ~37% of the time, and draws ~26% of the time, which is more decisive than the completely random player. (stats from 100k games each)
+
+The initial implementation of the q-learning algorithm beats the random player ~54% of the time, draws ~27% of the time, and loses ~19% of the time. This is about the same performance as the greedy-shooter policy. (Trained 100k battles, stats from 100k battles)
+
+The initial implementation algorithm does not fare well against the greedy-shooter player. It wins ~25% of the time, draws ~22% of the time, and loses ~52% of the time. This is only marginally better than the random agent playing against the greedy shooter. (Trained 100k battles, stats from 100k battles)
+
+
+To verify the above stats (requires pypy3.9):
+
+```bash
+make test
+
+# for random-v-random agent
+./WorldOfTanks --get-baselines --random-v-random
+
+# for greedy-v-greedy agent
+./WorldOfTanks --get-baselines --greedy-v-greedy
+
+# for greedy-v-random agent
+./WorldOfTanks --get-baselines --greedy-v-random
+
+```
 

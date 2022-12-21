@@ -2,6 +2,8 @@ from policy import Policy, RandomPolicy, GreedyShooterRandomPolicy
 from battle import Battle
 from tank import Tank
 from enum import Enum
+from q_wot import q_learn_1v1
+import sys
 
 class Result(Enum):
     TEAM0_WIN = 1
@@ -46,15 +48,11 @@ def simulate_1v1(p0_policy: Policy, p1_policy: Policy, verbose: bool = False) ->
 
     return result
 
-
-if (__name__ == "__main__"):
-
-    NUM_BATTLES = 100000
-
+def simulate_n_battles(p0_policy: Policy, p1_policy: Policy, num_battles: int = 100000):
     wins, draws, losses = 0, 0, 0
 
-    for i in range(NUM_BATTLES):
-        result: Result = simulate_1v1(RandomPolicy, RandomPolicy) # type: ignore
+    for i in range(num_battles):
+        result: Result = simulate_1v1(p0_policy, p1_policy) # type: ignore
 
         if result == Result.DRAW:
             draws += 1
@@ -63,4 +61,45 @@ if (__name__ == "__main__"):
         else:
             losses += 1
 
-    print(f"Out of {NUM_BATTLES} battles, team 0 had:\n{wins} wins\n{draws} draws\n{losses} losses")
+    print(f"Out of {num_battles} battles, team 0 had:\n{wins} wins\n{draws} draws\n{losses} losses")
+
+if (__name__ == "__main__"):
+
+    
+
+    if "--get-baselines" in sys.argv:
+        print("Computes the baseline results of playing the greedy & random agents against each other or themselves for 100k games.")
+        if "--random-v-random" in sys.argv:
+            policy0, policy1 = RandomPolicy, RandomPolicy
+        elif "--greedy-v-random" in sys.argv:
+            policy0, policy1 = GreedyShooterRandomPolicy, RandomPolicy
+        elif "--greedy-v-greedy" in sys.argv:
+            policy0, policy1 = GreedyShooterRandomPolicy, GreedyShooterRandomPolicy
+        else:
+            print("When using the --get-baselines command, please also add --random-v-random, --greedy-v-random, or --greedy-v-greedy")
+            exit(1)
+
+        simulate_n_battles(policy0, policy1) # type: ignore
+
+
+    elif "--train-q-learning" in sys.argv:
+        print("This option trains the q-learning agent for 100k battles against the given agent, then simulates 100k battles.")
+        if "--q-v-random" in sys.argv:
+            policy1_str = "random"
+            policy1 = RandomPolicy
+        elif "--q-v-greedy" in sys.argv:
+            policy1_str = "greedy"
+            policy1 = GreedyShooterRandomPolicy
+        else:
+            print("When using the --train-qlearning command, please also add --q-v-random or --q-v-greedy")
+            exit(1)
+
+        print("Beginning q-learning training.")
+        policy0 = q_learn_1v1(policy1_str, 100000)
+
+        print("Beginning battle simulations.")
+        simulate_n_battles(policy0, policy1, 100000) # type: ignore
+    
+    else:
+        print("Please use the --get-baselines or --train-qlearning options.")
+        exit(1)

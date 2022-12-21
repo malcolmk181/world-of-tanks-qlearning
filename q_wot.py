@@ -1,4 +1,4 @@
-from policy import Policy
+from policy import Policy, RandomPolicy, GreedyShooterRandomPolicy
 from battle import Action, ActionType, Battle
 from tank import Tank, TankState
 from random import shuffle, random, choice
@@ -108,11 +108,11 @@ def compute_state_from_tank_state(battle: Battle, team: int, player: int, player
     return in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover
 
 
-def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weights: None | dict[Q, tuple[float, float]] = None) -> Policy:
+def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000) -> Policy:
 
-    if pickled_weights:
-        raise NotImplementedError(
-            "Hold on pal, we haven't built the pickle stuff yet.")
+    # if pickled_weights:
+    #     raise NotImplementedError(
+    #         "Hold on pal, we haven't built the pickle stuff yet.")
 
     """
         what should my functional approximators be?
@@ -140,6 +140,13 @@ def q_learn_1v1(enemy_policy: Policy, num_simulations: int = 1000, pickled_weigh
     for _ in repeat(None, num_simulations):
 
         b = Battle([Tank()], [Tank()])
+
+        if enemy_strategy == "greedy":
+            enemy_policy = GreedyShooterRandomPolicy(b)
+        elif enemy_strategy == "random":
+            enemy_policy = RandomPolicy(b)
+        else:
+            raise ValueError("Invalid policy: use 'greedy' or 'random'.")
 
         while (not b.battle_is_over()):
             team0_actions, team1_actions = b.generate_all_player_actions()
