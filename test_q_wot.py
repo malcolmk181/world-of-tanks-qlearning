@@ -49,7 +49,7 @@ def simulate_1v1(p0_policy: Policy, p1_policy: Policy, verbose: bool = False) ->
 
     return result
 
-def simulate_n_battles(p0_policy: Policy, p1_policy: Policy, num_battles: int = 100000, verbose: bool = True) -> tuple[int, int, int]:
+def simulate_n_battles(p0_policy: Policy, p1_policy: Policy, num_battles: int = 10000, verbose: bool = True) -> tuple[int, int, int]:
     wins, draws, losses = 0, 0, 0
 
     for i in range(num_battles):
@@ -70,7 +70,7 @@ def simulate_n_battles(p0_policy: Policy, p1_policy: Policy, num_battles: int = 
 if (__name__ == "__main__"):
 
     if "--get-baselines" in sys.argv:
-        print("Computes the baseline results of playing the greedy & random agents against each other or themselves for 100k games.")
+        print("Computes the baseline results of playing the greedy & random agents against each other or themselves for 10k games.")
         if "--random-v-random" in sys.argv:
             policy0, policy1 = RandomPolicy, RandomPolicy
         elif "--greedy-v-random" in sys.argv:
@@ -81,11 +81,11 @@ if (__name__ == "__main__"):
             print("When using the --get-baselines command, please also add --random-v-random, --greedy-v-random, or --greedy-v-greedy")
             exit(1)
 
-        simulate_n_battles(policy0, policy1) # type: ignore
+        simulate_n_battles(policy0, policy1, 10000) # type: ignore
 
 
     elif "--train-q-learning" in sys.argv:
-        print("This option trains the q-learning agent for 100k battles against the given agent, then simulates 100k battles.")
+        print("This option trains the q-learning agent for 100k battles against the given agent, then simulates 10k battles.")
         if "--q-v-random" in sys.argv:
             policy1_str = "random"
             policy1 = RandomPolicy
@@ -98,12 +98,16 @@ if (__name__ == "__main__"):
 
         start: float = time()
 
-        print("Beginning q-learning training.")
-        policy0 = q_learn_1v1(policy1_str, 100000)
-        print(f"Completed training. Time elapsed: {round(((time() - start) / 60), 2)} minutes.")
+        if "--use-pretrained" in sys.argv:
+            print("Using pre-trained q-values.")
+            policy0 = q_learn_1v1(policy1_str, trained_filename=f"trained_qvalues/trained_{policy1_str}_example.pickle")
+        else:
+            print("Beginning q-learning training.")
+            policy0 = q_learn_1v1(policy1_str, 100000)
+            print(f"Completed training. Time elapsed: {round(((time() - start) / 60), 2)} minutes.")
 
         print("Beginning battle simulations.")
-        simulate_n_battles(policy0, policy1, 100000) # type: ignore
+        simulate_n_battles(policy0, policy1, 10000) # type: ignore
         print(f"Total training & simulation time: {round(((time() - start) / 60), 2)} minutes.")
 
     elif "--parameter-tuning" in sys.argv:
@@ -119,7 +123,7 @@ if (__name__ == "__main__"):
                 for learning_rate in [0.1, 0.2, 0.3]:
                     for i in range(5):
                         policy0 = q_learn_1v1("greedy", 100000, epsilon, discount_factor, learning_rate)
-                        wins, draws, losses = simulate_n_battles(policy0, GreedyShooterRandomPolicy, 100000, False) # type: ignore
+                        wins, draws, losses = simulate_n_battles(policy0, GreedyShooterRandomPolicy, 10000, False) # type: ignore
 
                         # since it takes about 5 minutes per simulation, and the whole script takes 10+ hours,
                         # probably should only open & close the file when the new data is ready

@@ -3,8 +3,9 @@ from battle import Action, ActionType, Battle
 from tank import Tank, TankState
 from random import shuffle, random, choice
 from itertools import repeat
-import json
+import pickle
 from datetime import datetime
+from typing import Union
 
 # (in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover)
 State = tuple[bool, bool, bool, bool, bool, bool, bool]
@@ -108,7 +109,7 @@ def compute_state_from_tank_state(battle: Battle, team: int, player: int, player
     return in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover
 
 
-def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000, epsilon: float = 0.1, discount: float = 0.4, l_rate: float = 0.3) -> Policy:
+def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000, epsilon: float = 0.1, discount: float = 0.4, l_rate: float = 0.3, trained_filename: Union[str,None] = None) -> Policy:
 
     # exploration value
     EPSILON = epsilon
@@ -141,51 +142,64 @@ def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000, epsilon: float
         but not every bucket is necessarily valid, so will be less.
         since it's sparse can use a dictionary instead of a many-dimensional array
     """
-    weights: dict[Q, tuple[float, float]] = {}
+    if not trained_filename:
+        weights: dict[Q, tuple[float, float]] = {}
 
-    # simulate num_simulations battles against the enemy policy
-    for _ in repeat(None, num_simulations):
+        # simulate num_simulations battles against the enemy policy
+        for _ in repeat(None, num_simulations):
 
-        b = Battle([Tank()], [Tank()])
+            b = Battle([Tank()], [Tank()])
 
-        if enemy_strategy == "greedy":
-            enemy_policy = GreedyShooterRandomPolicy(b)
-        elif enemy_strategy == "random":
-            enemy_policy = RandomPolicy(b)
-        else:
-            raise ValueError("Invalid policy: use 'greedy' or 'random'.")
+            if enemy_strategy == "greedy":
+                enemy_policy = GreedyShooterRandomPolicy(b)
+            elif enemy_strategy == "random":
+                enemy_policy = RandomPolicy(b)
+            else:
+                raise ValueError("Invalid policy: use 'greedy' or 'random'.")
 
-        while (not b.battle_is_over()):
-            team0_actions, team1_actions = b.generate_all_player_actions()
-            player0_actions = team0_actions[0]
-            player1_actions = team1_actions[0]
+            while (not b.battle_is_over()):
+                team0_actions, team1_actions = b.generate_all_player_actions()
+                player0_actions = team0_actions[0]
+                player1_actions = team1_actions[0]
 
-            player_state: TankState = b.team_states[0][0]
+                player_state: TankState = b.team_states[0][0]
 
-            # Choose & apply action
-            state = compute_state_from_tank_state(b, 0, 0, player_state)
-            action = choose_qaction(weights, state, player0_actions, EPSILON, INITIAL_LEARNING_RATE)
-            b.apply_all_player_actions(([action], [enemy_policy.choose_action(1,0,player1_actions)]))
+                # Choose & apply action
+                state = compute_state_from_tank_state(b, 0, 0, player_state)
+                action = choose_qaction(weights, state, player0_actions, EPSILON, INITIAL_LEARNING_RATE)
+                b.apply_all_player_actions(([action], [enemy_policy.choose_action(1,0,player1_actions)]))
 
-            # Observe result
-            damage_dealt_and_avoided, damage_taken = player_state.last_damage_stats
-            reward: int = damage_dealt_and_avoided - damage_taken
+                # Observe result
+                damage_dealt_and_avoided, damage_taken = player_state.last_damage_stats
+                reward: int = damage_dealt_and_avoided - damage_taken
 
-            # Update Q-values
-            value, learning_rate = get_weight_and_learning_rate(weights, state, action[0], INITIAL_LEARNING_RATE)
-            next_state = compute_state_from_tank_state(b, 0, 0, player_state)
-            next_state_value = best_action_value(weights, next_state, list(set(map(lambda x: x[0], b.generate_all_player_actions()[0][0]))), INITIAL_LEARNING_RATE)
+                # Update Q-values
+                value, learning_rate = get_weight_and_learning_rate(weights, state, action[0], INITIAL_LEARNING_RATE)
+                next_state = compute_state_from_tank_state(b, 0, 0, player_state)
+                next_state_value = best_action_value(weights, next_state, list(set(map(lambda x: x[0], b.generate_all_player_actions()[0][0]))), INITIAL_LEARNING_RATE)
 
-            new_weight: float = (1 - learning_rate) * value + learning_rate * (reward + DISCOUNT_FACTOR * next_state_value)
-            set_weight(weights, state, action[0], new_weight)
+                new_weight: float = (1 - learning_rate) * value + learning_rate * (reward + DISCOUNT_FACTOR * next_state_value)
+                set_weight(weights, state, action[0], new_weight)
 
     
+        filename: str = f"trained_qvalues/{str(datetime.now())} e-{EPSILON} d-{DISCOUNT_FACTOR} lr-{INITIAL_LEARNING_RATE}.pickle"
+
+        with open(filename, "wb") as outfile:
+            pickle.dump(weights, outfile)
+
+        outfile.close()
+
+    else:
+        # we were given a trained dataset to load
+        with open(trained_filename, "rb") as infile:
+            weights = pickle.load(infile)
+
+        infile.close()
 
     class QPolicy(Policy):
         def choose_action(self, team: int, player: int, actions: list[Action]) -> Action:
             player_state: TankState = self.battle.team_states[team][player]
-            state = compute_state_from_tank_state(
-                self.battle, team, player, player_state)
+            state = compute_state_from_tank_state(self.battle, team, player, player_state)
 
             return choose_best_qaction(weights, state, actions, INITIAL_LEARNING_RATE)
 
