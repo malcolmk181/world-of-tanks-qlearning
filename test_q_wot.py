@@ -114,8 +114,6 @@ if (__name__ == "__main__"):
             Each simulation takes a little under 4 1/2 minutes, so can test 13 combinations an hour.
         """
 
-        f = open("results.txt", "at")
-
         for epsilon in [0.1, 0.2, 0.3]:
             for discount_factor in [0.2, 0.4, 0.6]:
                 for learning_rate in [0.1, 0.2, 0.3]:
@@ -123,10 +121,14 @@ if (__name__ == "__main__"):
                         policy0 = q_learn_1v1("greedy", 100000, epsilon, discount_factor, learning_rate)
                         wins, draws, losses = simulate_n_battles(policy0, GreedyShooterRandomPolicy, 100000, False) # type: ignore
 
+                        # since it takes about 5 minutes per simulation, and the whole script takes 10+ hours,
+                        # probably should only open & close the file when the new data is ready
+                        f = open("results.txt", "at")
+
                         f.write(f"epsilon: {epsilon}%, discount factor: {discount_factor}%, learning rate: {learning_rate}% | W: {wins}, D: {draws}, L: {losses} \n")
                         print(f"epsilon: {epsilon}%, discount factor: {discount_factor}%, learning rate: {learning_rate}% | W: {wins}, D: {draws}, L: {losses}")
 
-        f.close()
+                        f.close()
 
     
     else:
