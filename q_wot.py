@@ -99,7 +99,7 @@ def compute_state_from_tank_state(battle: Battle, team: int, player: int, player
     return in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover
 
 
-def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000, epsilon: float = 0.25, discount: float = 0.6, l_rate: float = 0.2) -> Policy:
+def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000, epsilon: float = 0.1, discount: float = 0.4, l_rate: float = 0.3) -> Policy:
 
     # exploration value
     EPSILON = epsilon

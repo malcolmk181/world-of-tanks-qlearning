@@ -79,6 +79,8 @@ Initial implementation of q-learning received these results with 100k training b
 
 So it doesn't perform as well as greedy against the random agent, and leads to a lot of draws and losses against the greedy agent. Yoinks. Time for hyper-parameter tuning.
 
+After 11 hours of fuzzing different values, an epsilon of 0.1, discount factor of 0.4, and learning rate of 0.3 seemed to do the best, on average. However, even with these parameters it was still very inconsistent between different trainings.
+
 To verify the above stats (requires pypy3.9):
 
 ```bash
@@ -98,6 +100,9 @@ make test
 
 # for q-learning v greedy agent
 ./WorldOfTanks --train-q-learning --q-v-greedy
+
+# to run the hyper-parameter fuzzing against the greedy agent (took about 11 hours on my laptop)
+./WorldOfTanks --parameter-tuning
 
 ```
 
