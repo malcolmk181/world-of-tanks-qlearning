@@ -60,28 +60,44 @@ Games are set to limit at 60 ticks. During each tick, each player chooses an act
 
 ## Results
 
-As a baseline, I made two agents - one that acts completely randomly, and one that will also act randomly, but will always choose a shooting play when one is available.
+As a baseline, I made two agents - one that acts completely randomly, and one that will also act randomly, but will always choose a shooting play when one is available. After a slight modification that increased the accuracy penalty for moving while shooting, the stats of the greedy & random agents playing themselves in 1v1 situations 100k times are:
 
-In a 1v1 situation, the greedy-shooter beats the completely random agent ~56% of the time, draws about ~24% of the time, and loses ~20% of the time. Conversely, the random policy playing itself wins or loses ~31% of the time, and draws ~38% of the time. The greedy-shooter playing itself wins or loses ~37% of the time, and draws ~26% of the time, which is more decisive than the completely random player. (stats from 100k games each)
+| Agents          | Wins | Draws | Losses |
+| --------------- | ---- | ----- | ------ |
+| Random v Random | 24%  | 52%   | 24%    |
+| Greedy v Greedy | 33%  | 33%   | 33%    |
+| Greedy v Random | 46%  | 36%   | 18%    |
 
-The initial implementation of the q-learning algorithm beats the random player ~54% of the time, draws ~27% of the time, and loses ~19% of the time. This is about the same performance as the greedy-shooter policy. (Trained 100k battles, stats from 100k battles)
+The greedy-shooter is more decisive than the completely random agent, but still not great. It does fare very positively against the random agent.
 
-The initial implementation algorithm does not fare well against the greedy-shooter player. It wins ~25% of the time, draws ~22% of the time, and loses ~52% of the time. This is only marginally better than the random agent playing against the greedy shooter. (Trained 100k battles, stats from 100k battles)
+Initial implementation of q-learning received these results with 100k training battles, 100k simulations, and trained against the random or greedy agent (respectively) on 1 run:
 
+| Agents     | Wins | Draws | Losses |
+| ---------- | ---- | ----- | ------ |
+| Q v Random | 44%  | 41%   | 15%    |
+| Q v Greedy | 18%  | 62%   | 21%    |
+
+So it doesn't perform as well as greedy against the random agent, and leads to a lot of draws and losses against the greedy agent. Yoinks. Time for hyper-parameter tuning.
 
 To verify the above stats (requires pypy3.9):
 
 ```bash
 make test
 
-# for random-v-random agent
+# for random v random agent
 ./WorldOfTanks --get-baselines --random-v-random
 
-# for greedy-v-greedy agent
+# for greedy v greedy agent
 ./WorldOfTanks --get-baselines --greedy-v-greedy
 
-# for greedy-v-random agent
+# for greedy v random agent
 ./WorldOfTanks --get-baselines --greedy-v-random
+
+# for q-learning v random agent
+./WorldOfTanks --train-q-learning --q-v-random
+
+# for q-learning v greedy agent
+./WorldOfTanks --train-q-learning --q-v-greedy
 
 ```
 

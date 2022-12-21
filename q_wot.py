@@ -4,20 +4,13 @@ from tank import Tank, TankState
 from random import shuffle, random, choice
 from itertools import repeat
 
-# exploration value
-EPSILON = 0.25
-
-DISCOUNT_FACTOR = 0.6
-
-INITIAL_LEARNING_RATE = 0.2
-
 # (in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover)
 State = tuple[bool, bool, bool, bool, bool, bool, bool]
 
 Q = tuple[State, ActionType]
 
 
-def get_weight_and_learning_rate(weights: dict[Q, tuple[float, float]], state: State, action_type: ActionType) -> tuple[float, float]:
+def get_weight_and_learning_rate(weights: dict[Q, tuple[float, float]], state: State, action_type: ActionType, INITIAL_LEARNING_RATE: float) -> tuple[float, float]:
     if (state, action_type) in weights:
         return weights[(state, action_type)]
     else:
@@ -31,14 +24,14 @@ def set_weight(weights: dict[Q, tuple[float, float]], state: State, action_type:
     weights[(state, action_type)] = new_weight, learning_rate ** 0.99
 
 
-def best_action_type(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType]) -> ActionType:
+def best_action_type(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType], INITIAL_LEARNING_RATE: float) -> ActionType:
     shuffle(allowed_action_types)
 
     best_found_action_type: ActionType = allowed_action_types[0]
     best_found_reward: float = 0.0
 
     for action_type in allowed_action_types:
-        reward, _ = get_weight_and_learning_rate(weights, state, action_type)
+        reward, _ = get_weight_and_learning_rate(weights, state, action_type, INITIAL_LEARNING_RATE)
 
         if reward > best_found_reward:
             best_found_reward = reward
@@ -46,31 +39,29 @@ def best_action_type(weights: dict[Q, tuple[float, float]], state: State, allowe
 
     return best_found_action_type
 
-def best_action_value(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType]) -> float:
+def best_action_value(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType], INITIAL_LEARNING_RATE: float) -> float:
 
     best_found_reward: float = 0.0
 
     for action_type in allowed_action_types:
-        reward, _ = get_weight_and_learning_rate(weights, state, action_type)
+        reward, _ = get_weight_and_learning_rate(weights, state, action_type, INITIAL_LEARNING_RATE)
 
         if reward > best_found_reward:
             best_found_reward = reward
 
     return best_found_reward
 
-def epsilon_greedy(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType]) -> ActionType:
+def epsilon_greedy(weights: dict[Q, tuple[float, float]], state: State, allowed_action_types: list[ActionType], EPSILON: float, INITIAL_LEARNING_RATE: float) -> ActionType:
     if random() <= EPSILON:
         return choice(allowed_action_types)
     else:
-        return best_action_type(weights, state, allowed_action_types)
+        return best_action_type(weights, state, allowed_action_types, INITIAL_LEARNING_RATE)
 
 
-def choose_qaction(weights: dict[Q, tuple[float, float]], state: State, actions: list[Action]) -> Action:
-    allowed_action_types: list[ActionType] = list(
-        set(map(lambda x: x[0], actions)))
+def choose_qaction(weights: dict[Q, tuple[float, float]], state: State, actions: list[Action], EPSILON: float, INITIAL_LEARNING_RATE: float) -> Action:
+    allowed_action_types: list[ActionType] = list(set(map(lambda x: x[0], actions)))
 
-    chosen_action_type: ActionType = epsilon_greedy(
-        weights, state, allowed_action_types)
+    chosen_action_type: ActionType = epsilon_greedy(weights, state, allowed_action_types, EPSILON, INITIAL_LEARNING_RATE)
 
     return choice(list(filter(lambda x: x[0] == chosen_action_type, actions)))
 
@@ -108,7 +99,14 @@ def compute_state_from_tank_state(battle: Battle, team: int, player: int, player
     return in_light_cover, in_heavy_cover, ready_to_shoot, moving, possible_target, enemy_moving, enemy_light_cover
 
 
-def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000) -> Policy:
+def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000, epsilon: float = 0.25, discount: float = 0.6, l_rate: float = 0.2) -> Policy:
+
+    # exploration value
+    EPSILON = epsilon
+
+    DISCOUNT_FACTOR = discount
+
+    INITIAL_LEARNING_RATE = l_rate
 
     # if pickled_weights:
     #     raise NotImplementedError(
@@ -157,7 +155,7 @@ def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000) -> Policy:
 
             # Choose & apply action
             state = compute_state_from_tank_state(b, 0, 0, player_state)
-            action = choose_qaction(weights, state, player0_actions)
+            action = choose_qaction(weights, state, player0_actions, EPSILON, INITIAL_LEARNING_RATE)
             b.apply_all_player_actions(([action], [enemy_policy.choose_action(1,0,player1_actions)]))
 
             # Observe result
@@ -165,9 +163,9 @@ def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000) -> Policy:
             reward: int = damage_dealt_and_avoided - damage_taken
 
             # Update Q-values
-            value, learning_rate = get_weight_and_learning_rate(weights, state, action[0])
+            value, learning_rate = get_weight_and_learning_rate(weights, state, action[0], INITIAL_LEARNING_RATE)
             next_state = compute_state_from_tank_state(b, 0, 0, player_state)
-            next_state_value = best_action_value(weights, next_state, list(set(map(lambda x: x[0], b.generate_all_player_actions()[0][0]))))
+            next_state_value = best_action_value(weights, next_state, list(set(map(lambda x: x[0], b.generate_all_player_actions()[0][0]))), INITIAL_LEARNING_RATE)
 
             new_weight: float = (1 - learning_rate) * value + learning_rate * (reward + DISCOUNT_FACTOR * next_state_value)
             set_weight(weights, state, action[0], new_weight)
@@ -178,6 +176,6 @@ def q_learn_1v1(enemy_strategy: str, num_simulations: int = 1000) -> Policy:
             state = compute_state_from_tank_state(
                 self.battle, team, player, player_state)
 
-            return choose_qaction(weights, state, actions)
+            return choose_qaction(weights, state, actions, EPSILON, INITIAL_LEARNING_RATE)
 
     return QPolicy  # type: ignore

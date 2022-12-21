@@ -10,7 +10,7 @@ class ActionType(Enum):
     MOVE_AND_SHOOT = 3
 
 # Action: type of action, new position, fired?, target (only valid if fired)
-Action = tuple[ActionType, Position, bool, int]
+Action = tuple[ActionType, Position, bool, int] # type: ignore
 
 # ActionResult: type of action, new position, fired?, target (only valid if fired), damage dealt and avoided, damage received
 ActionResult = tuple[ActionType, Position, bool, int, int, int]
@@ -140,7 +140,7 @@ class Battle:
         landing_probability: float = 0.9
 
         if attacker_state.moving():
-            landing_probability -= 0.2
+            landing_probability -= 0.3
 
         if target_state.moving():
             landing_probability -= 0.1

@@ -4,6 +4,7 @@ from tank import Tank
 from enum import Enum
 from q_wot import q_learn_1v1
 import sys
+from time import time
 
 class Result(Enum):
     TEAM0_WIN = 1
@@ -48,7 +49,7 @@ def simulate_1v1(p0_policy: Policy, p1_policy: Policy, verbose: bool = False) ->
 
     return result
 
-def simulate_n_battles(p0_policy: Policy, p1_policy: Policy, num_battles: int = 100000):
+def simulate_n_battles(p0_policy: Policy, p1_policy: Policy, num_battles: int = 100000, verbose: bool = True) -> tuple[int, int, int]:
     wins, draws, losses = 0, 0, 0
 
     for i in range(num_battles):
@@ -61,11 +62,12 @@ def simulate_n_battles(p0_policy: Policy, p1_policy: Policy, num_battles: int = 
         else:
             losses += 1
 
-    print(f"Out of {num_battles} battles, team 0 had:\n{wins} wins\n{draws} draws\n{losses} losses")
+    if verbose:
+        print(f"Out of {num_battles} battles, team 0 had:\n{wins} wins\n{draws} draws\n{losses} losses")
+
+    return wins, draws, losses
 
 if (__name__ == "__main__"):
-
-    
 
     if "--get-baselines" in sys.argv:
         print("Computes the baseline results of playing the greedy & random agents against each other or themselves for 100k games.")
@@ -94,11 +96,38 @@ if (__name__ == "__main__"):
             print("When using the --train-qlearning command, please also add --q-v-random or --q-v-greedy")
             exit(1)
 
+        start: float = time()
+
         print("Beginning q-learning training.")
         policy0 = q_learn_1v1(policy1_str, 100000)
+        print(f"Completed training. Time elapsed: {round(((time() - start) / 60), 2)} minutes.")
 
         print("Beginning battle simulations.")
         simulate_n_battles(policy0, policy1, 100000) # type: ignore
+        print(f"Total training & simulation time: {round(((time() - start) / 60), 2)} minutes.")
+
+    elif "--parameter-tuning" in sys.argv:
+        """
+            Used to iterate over a bunch of combinations and see what gives the best results
+            for changing epsilon, initial learning rate, and discount factor.
+
+            Each simulation takes a little under 4 1/2 minutes, so can test 13 combinations an hour.
+        """
+
+        f = open("results.txt", "at")
+
+        for epsilon in [0.1, 0.2, 0.3]:
+            for discount_factor in [0.2, 0.4, 0.6]:
+                for learning_rate in [0.1, 0.2, 0.3]:
+                    for i in range(5):
+                        policy0 = q_learn_1v1("greedy", 100000, epsilon, discount_factor, learning_rate)
+                        wins, draws, losses = simulate_n_battles(policy0, GreedyShooterRandomPolicy, 100000, False) # type: ignore
+
+                        f.write(f"epsilon: {epsilon}%, discount factor: {discount_factor}%, learning rate: {learning_rate}% | W: {wins}, D: {draws}, L: {losses} \n")
+                        print(f"epsilon: {epsilon}%, discount factor: {discount_factor}%, learning rate: {learning_rate}% | W: {wins}, D: {draws}, L: {losses}")
+
+        f.close()
+
     
     else:
         print("Please use the --get-baselines or --train-qlearning options.")
