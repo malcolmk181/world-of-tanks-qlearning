@@ -30,6 +30,8 @@ class TankState:
         self.damage_taken: int = 0
         self.shots_fired: int = 0
 
+        self.last_damage_stats: tuple[int,int] = (0,0) # Damage dealt & avoided, damage taken - from last turn
+
     def in_heavy_cover(self) -> bool:
         return self.battlefield.position_is_heavy_cover(self.position)
 
@@ -54,7 +56,7 @@ class TankState:
         return int(floor(distance)) <= self.tank.range
 
 
-    def take_action(self, new_position: Position, fired: bool, damage_dealt_and_avoided: int, damage_taken: int):
+    def take_action(self, new_position: Position, fired: bool, damage_dealt_and_avoided: int, damage_taken: int) -> None:
         self.last_position = self.position
         self.position = new_position
 
@@ -68,6 +70,8 @@ class TankState:
 
         self.damage_taken += damage_taken
         self.remaining_health = max(0, self.remaining_health - damage_taken)
+
+        self.last_damage_stats = (damage_dealt_and_avoided, damage_taken)
 
     def print_stats(self) -> None:
         print(f"Shots fired: {self.shots_fired}")
