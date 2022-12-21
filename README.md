@@ -1,3 +1,7 @@
+<!--
+  Hi Professor Glenn! If you're reading this, you can run the quick test script by simply running make. There's a lot of detail in this README you can otherwise skip if you're in a hurry. :) Happy Holidays!
+-->
+
 # Q-Learning + World of Tanks
 
 Yale CPSC 474 (Computational Intelligence for Games) Final Project. Using Q-Learning to build an agent for a simplified World of Tanks encounter.
@@ -81,6 +85,15 @@ So it doesn't perform as well as greedy against the random agent, and leads to a
 
 After 11 hours of fuzzing different values, an epsilon of 0.1, discount factor of 0.4, and learning rate of 0.3 seemed to do the best, on average. However, even with these parameters it was still very inconsistent between different trainings.
 
+After fixing an incredibly silly bug (I was still using epsilon-greedy in the trained agent, rip) in my q-learning module and implementing the new parameters, here are the values I got:
+
+| Agents     | Wins | Draws | Losses |
+| ---------- | ---- | ----- | ------ |
+| Q v Random | 78%  | 16%   | 06%    |
+| Q v Greedy | 51%  | 26%   | 24%    |
+
+These are much more satisfactory results!!
+
 To verify the above stats (requires pypy3.9):
 
 ```bash
@@ -104,5 +117,20 @@ make test
 # to run the hyper-parameter fuzzing against the greedy agent (took about 11 hours on my laptop)
 ./WorldOfTanks --parameter-tuning
 
+# to run the q-learning agent using pre-trained data
+# NOTE THAT THIS WILL LOAD PICKLED FILES - I created them but always be wary of unpickling unknown data!
+# Since I use tuples as keys, I unfortunately couldn't use python's JSON serializer.
+./WorldOfTanks --train-q-learning --q-v-greedy --use-pretrained
+./WorldOfTanks --train-q-learning --q-v-random --use-pretrained
+
 ```
 
+## Moving Forward
+
+Although these results are satisfactory in my opinion, the agent has a lot of room for improvement. In particular, the results from training aren't super consistent, leading me to believe that the parameters need more tuning, as well as potentially tweaking how rewards are calculated. Generally speaking, the model also might just need to be tweaked as well.
+
+I think the q-learning could be made significantly better by adding a few more statistics to the state-action pair - in particular keeping track of whether an action moves the player in or out of light & heavy cover. This is something I originally intended to add but had to cut for time & complexity.
+
+Another improvement would be simply expanding the state to also include board position to introduce memory for the characteristics of the map, but this would significantly increase the state space, memory usage, and time to train.
+
+Lastly, though the game-model itself should support any number of players on the two teams, the testing code and q-learning are written for 1v1 encounters, and the battlefield code is written to support max 2v2 right now.
